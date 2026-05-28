@@ -36,10 +36,11 @@ export interface CdnOptions {
 }
 
 /**
- * Resolved package with version guaranteed to be set
+ * Resolved package with version and globalName guaranteed to be set
  */
 export interface ResolvedPackage extends CdnPackage {
   version: string
+  globalName: string
 }
 
 /**

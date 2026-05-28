@@ -1,48 +1,18 @@
 import type { Plugin, ResolvedConfig } from 'vite'
 import type { CdnOptions, CdnPackage, ResolvedPackage } from './types'
 import { getCdnUrl } from './providers'
+import { buildExternal } from './external'
+import { inferGlobalName, buildGlobals } from './globals'
+import { resolveVersion } from './resolver'
 
 export type { CdnOptions, CdnPackage }
 
 /**
- * Infer global variable name from package name
- * e.g., 'vue' -> 'Vue', 'react-dom' -> 'ReactDOM', 'lodash-es' -> '_'
- */
-function inferGlobalName(name: string): string {
-  const overrides: Record<string, string> = {
-    'lodash-es': '_',
-    'lodash': '_',
-    'jquery': '$',
-    'moment': 'moment',
-    'dayjs': 'dayjs',
-    'axios': 'axios',
-  }
-  if (overrides[name]) return overrides[name]
-  return name
-    .split(/[-/]/)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
-}
-
-/**
- * Try to resolve package version from node_modules
- */
-function resolveVersion(name: string): string | undefined {
-  try {
-    const pkgPath = require.resolve(`${name}/package.json`)
-    const pkg = require(pkgPath)
-    return pkg.version
-  } catch {
-    return undefined
-  }
-}
-
-/**
  * Resolve packages: fill in missing version and globalName
  */
-function resolvePackages(packages: CdnPackage[]): ResolvedPackage[] {
+function resolvePackages(packages: CdnPackage[], root?: string): ResolvedPackage[] {
   return packages.map((pkg) => {
-    const version = pkg.version || resolveVersion(pkg.name)
+    const version = pkg.version || resolveVersion(pkg.name, root)
     if (!version) {
       throw new Error(
         `[vite-plugin-cdn-optimizer] Cannot resolve version for "${pkg.name}". ` +
@@ -55,33 +25,6 @@ function resolvePackages(packages: CdnPackage[]): ResolvedPackage[] {
       globalName: pkg.globalName || inferGlobalName(pkg.name),
     }
   })
-}
-
-/**
- * Build external function for Rollup
- */
-function buildExternal(pkgs: ResolvedPackage[]) {
-  const names = new Set(pkgs.map(p => p.name))
-  return (id: string) => {
-    // Exact match
-    if (names.has(id)) return true
-    // Sub-path match (e.g., lodash-es/get)
-    for (const name of names) {
-      if (id.startsWith(`${name}/`)) return true
-    }
-    return false
-  }
-}
-
-/**
- * Build globals map for Rollup output
- */
-function buildGlobals(pkgs: ResolvedPackage[]): Record<string, string> {
-  const map: Record<string, string> = {}
-  for (const pkg of pkgs) {
-    map[pkg.name] = pkg.globalName!
-  }
-  return map
 }
 
 /**
@@ -146,7 +89,7 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
 
     configResolved(config: ResolvedConfig) {
       isDev = config.command === 'serve'
-      resolvedPkgs = resolvePackages(packages)
+      resolvedPkgs = resolvePackages(packages, config.root)
     },
 
     config() {
@@ -163,10 +106,13 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
     },
 
     transformIndexHtml() {
-      // Skip in dev mode unless devMode is enabled
       if (isDev && !devMode) return []
-
       return generateHtmlTags(resolvedPkgs, provider, scriptAttrs, linkAttrs)
     },
   }
 }
+
+export { inferGlobalName } from './globals'
+export { buildExternal, isExternal } from './external'
+export { getCdnUrl, getCdnUrlGenerator } from './providers'
+export { resolveVersion } from './resolver'
