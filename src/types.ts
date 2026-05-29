@@ -17,6 +17,14 @@ export interface CdnPackage {
   globalName?: string
   /** Whether this is a CSS-only entry */
   css?: boolean
+  /** Per-package extra attributes for the HTML tag */
+  attrs?: Record<string, string | boolean>
+  /** SRI integrity hash (e.g., 'sha384-...') */
+  integrity?: string
+  /** Script loading strategy. Default: no defer/async */
+  loading?: 'defer' | 'async'
+  /** Add a preload link hint for this resource */
+  preload?: boolean
 }
 
 /**
@@ -29,9 +37,11 @@ export interface CdnOptions {
   packages: CdnPackage[]
   /** Whether to enable in dev mode. Default: false */
   devMode?: boolean
-  /** Extra attributes for script tags (e.g., crossorigin, integrity) */
+  /** Default crossorigin for all script/link tags. Default: 'anonymous' */
+  crossorigin?: string | false
+  /** Extra attributes applied to all script tags */
   scriptAttrs?: Record<string, string>
-  /** Extra attributes for link tags */
+  /** Extra attributes applied to all link tags */
   linkAttrs?: Record<string, string>
 }
 
@@ -47,3 +57,13 @@ export interface ResolvedPackage extends CdnPackage {
  * CDN URL generator function
  */
 export type CdnUrlGenerator = (pkg: ResolvedPackage) => string
+
+/**
+ * HTML tag descriptor compatible with Vite's transformIndexHtml
+ */
+export interface HtmlTagDescriptor {
+  tag: string
+  attrs: Record<string, string | boolean>
+  children?: string
+  injectTo?: 'head' | 'body' | 'head-prepend' | 'body-prepend'
+}

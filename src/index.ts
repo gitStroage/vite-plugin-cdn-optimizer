@@ -1,9 +1,9 @@
 import type { Plugin, ResolvedConfig } from 'vite'
-import type { CdnOptions, CdnPackage, ResolvedPackage } from './types'
-import { getCdnUrl } from './providers'
+import type { CdnOptions, CdnPackage, ResolvedPackage, CdnProvider } from './types'
 import { buildExternal } from './external'
 import { inferGlobalName, buildGlobals } from './globals'
 import { resolveVersion } from './resolver'
+import { generateHtmlTags } from './html'
 
 export type { CdnOptions, CdnPackage }
 
@@ -28,45 +28,6 @@ function resolvePackages(packages: CdnPackage[], root?: string): ResolvedPackage
 }
 
 /**
- * Generate HTML tags for CDN packages
- */
-function generateHtmlTags(
-  pkgs: ResolvedPackage[],
-  provider: string,
-  scriptAttrs: Record<string, string> = {},
-  linkAttrs: Record<string, string> = {},
-) {
-  const tags: Array<{ tag: string; attrs: Record<string, string>; injectTo?: 'head' | 'body' }> = []
-
-  for (const pkg of pkgs) {
-    const url = getCdnUrl(pkg, provider as any)
-    if (pkg.css) {
-      tags.push({
-        tag: 'link',
-        attrs: {
-          rel: 'stylesheet',
-          href: url,
-          ...linkAttrs,
-        },
-        injectTo: 'head',
-      })
-    } else {
-      tags.push({
-        tag: 'script',
-        attrs: {
-          src: url,
-          crossorigin: 'anonymous',
-          ...scriptAttrs,
-        },
-        injectTo: 'head',
-      })
-    }
-  }
-
-  return tags
-}
-
-/**
  * vite-plugin-cdn-optimizer
  *
  * Replaces npm dependencies with CDN links for smaller production bundles.
@@ -76,6 +37,7 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
     provider = 'jsdelivr',
     packages,
     devMode = false,
+    crossorigin,
     scriptAttrs = {},
     linkAttrs = {},
   } = options
@@ -107,7 +69,11 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
 
     transformIndexHtml() {
       if (isDev && !devMode) return []
-      return generateHtmlTags(resolvedPkgs, provider, scriptAttrs, linkAttrs)
+      return generateHtmlTags(resolvedPkgs, provider as CdnProvider, {
+        crossorigin,
+        scriptAttrs,
+        linkAttrs,
+      })
     },
   }
 }
@@ -116,3 +82,4 @@ export { inferGlobalName } from './globals'
 export { buildExternal, isExternal } from './external'
 export { getCdnUrl, getCdnUrlGenerator } from './providers'
 export { resolveVersion } from './resolver'
+export { generateHtmlTags } from './html'
