@@ -185,3 +185,23 @@ describe('global scriptAttrs / linkAttrs', () => {
     expect(tags[0].attrs.media).toBe('print')
   })
 })
+
+describe('media query', () => {
+  it('adds media attribute to CSS link tag', () => {
+    const pkg: ResolvedPackage = { ...elementCss, media: 'print' }
+    const tags = generateHtmlTags([pkg], 'jsdelivr')
+    expect(tags[0].attrs.media).toBe('print')
+  })
+
+  it('supports complex media query', () => {
+    const pkg: ResolvedPackage = { ...elementCss, media: '(min-width: 768px)' }
+    const tags = generateHtmlTags([pkg], 'jsdelivr')
+    expect(tags[0].attrs.media).toBe('(min-width: 768px)')
+  })
+
+  it('does not add media to script tags', () => {
+    const pkg: ResolvedPackage = { ...vue, media: 'screen' }
+    const tags = generateHtmlTags([pkg], 'jsdelivr')
+    expect(tags[0].attrs.media).toBeUndefined()
+  })
+})

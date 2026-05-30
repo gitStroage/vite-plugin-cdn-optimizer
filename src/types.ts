@@ -25,6 +25,8 @@ export interface CdnPackage {
   loading?: 'defer' | 'async'
   /** Add a preload link hint for this resource */
   preload?: boolean
+  /** Media query for CSS link tags (e.g., 'screen', 'print', '(min-width: 768px)') */
+  media?: string
 }
 
 /**
@@ -43,6 +45,8 @@ export interface CdnOptions {
   scriptAttrs?: Record<string, string>
   /** Extra attributes applied to all link tags */
   linkAttrs?: Record<string, string>
+  /** Enable CSS resource path rewriting (fonts, images). Default: true */
+  rewriteCss?: boolean
 }
 
 /**
@@ -66,4 +70,14 @@ export interface HtmlTagDescriptor {
   attrs: Record<string, string | boolean>
   children?: string
   injectTo?: 'head' | 'body' | 'head-prepend' | 'body-prepend'
+}
+
+/**
+ * Context for CSS path rewriting
+ */
+export interface CssRewriteContext {
+  /** The CDN base URL for the package (e.g., https://cdn.jsdelivr.net/npm/element-plus@2.9.1) */
+  cdnBase: string
+  /** The original CSS file path relative to the package */
+  cssPath: string
 }

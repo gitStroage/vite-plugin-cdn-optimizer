@@ -82,6 +82,10 @@ function buildStyleTag(
     attrs.integrity = pkg.integrity
   }
 
+  if (pkg.media) {
+    attrs.media = pkg.media
+  }
+
   return {
     tag: 'link',
     attrs: normalizeAttrs(attrs),

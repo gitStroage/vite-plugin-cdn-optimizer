@@ -19,10 +19,14 @@ function resolvePackages(packages: CdnPackage[], root?: string): ResolvedPackage
         `Please specify the version explicitly or install the package first.`
       )
     }
+    // CSS-only packages don't need a globalName
+    const globalName = pkg.css
+      ? (pkg.globalName || '')
+      : (pkg.globalName || inferGlobalName(pkg.name))
     return {
       ...pkg,
       version,
-      globalName: pkg.globalName || inferGlobalName(pkg.name),
+      globalName,
     }
   })
 }
@@ -83,3 +87,4 @@ export { buildExternal, isExternal } from './external'
 export { getCdnUrl, getCdnUrlGenerator } from './providers'
 export { resolveVersion } from './resolver'
 export { generateHtmlTags } from './html'
+export { rewriteCssUrls, getCdnBase, cssPackage } from './css'
