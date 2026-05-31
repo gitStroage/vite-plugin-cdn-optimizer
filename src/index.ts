@@ -4,6 +4,7 @@ import { buildExternal } from './external'
 import { inferGlobalName, buildGlobals } from './globals'
 import { resolveVersion } from './resolver'
 import { generateHtmlTags } from './html'
+import { detectSsr, shouldSkipHtmlInjection } from './ssr'
 
 export type { CdnOptions, CdnPackage }
 
@@ -48,6 +49,7 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
 
   let resolvedPkgs: ResolvedPackage[]
   let isDev = false
+  let ssrContext = { isSsr: false, isSsrBuild: false }
 
   return {
     name: 'vite-plugin-cdn-optimizer',
@@ -55,10 +57,16 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
 
     configResolved(config: ResolvedConfig) {
       isDev = config.command === 'serve'
+      ssrContext = detectSsr(config as any)
       resolvedPkgs = resolvePackages(packages, config.root)
     },
 
-    config() {
+    config(_, { command }) {
+      // In SSR mode, don't set external/globals — SSR handles its own externals
+      if (ssrContext.isSsr) {
+        return {}
+      }
+
       return {
         build: {
           rollupOptions: {
@@ -72,7 +80,11 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
     },
 
     transformIndexHtml() {
+      // Skip in dev mode unless devMode is enabled
       if (isDev && !devMode) return []
+      // Skip in SSR mode — no browser HTML to inject into
+      if (shouldSkipHtmlInjection(ssrContext.isSsr, ssrContext.isSsrBuild)) return []
+
       return generateHtmlTags(resolvedPkgs, provider as CdnProvider, {
         crossorigin,
         scriptAttrs,
@@ -85,6 +97,8 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
 export { inferGlobalName } from './globals'
 export { buildExternal, isExternal } from './external'
 export { getCdnUrl, getCdnUrlGenerator } from './providers'
-export { resolveVersion } from './resolver'
+export { resolveVersion, resolveVersionFromPackageJson, extractVersion } from './resolver'
 export { generateHtmlTags } from './html'
 export { rewriteCssUrls, getCdnBase, cssPackage } from './css'
+export { resolveSubpathUrl, findParentPackage, buildSubpathMap } from './subpath'
+export { detectSsr, getSsrExternalPackages, shouldSkipHtmlInjection } from './ssr'
