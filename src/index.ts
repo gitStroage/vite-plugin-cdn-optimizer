@@ -61,7 +61,7 @@ export default function cdnOptimizer(options: CdnOptions): Plugin {
       resolvedPkgs = resolvePackages(packages, config.root)
     },
 
-    config(_, { command }) {
+    config(_, env) {
       // In SSR mode, don't set external/globals — SSR handles its own externals
       if (ssrContext.isSsr) {
         return {}
